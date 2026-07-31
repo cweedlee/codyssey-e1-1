@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Docker Practice</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">Docker basic setup</p>
+      <h1>Codyssey E1-1 Web Server</h1>
+      <p>
+        NGINX 컨테이너에서 제공되는 정적 페이지입니다. 이 파일은
+        <code>./public</code> bind mount로 연결되어 있어 호스트에서 수정하면
+        컨테이너 응답에도 바로 반영됩니다.
+      </p>
+      <dl>
+        <div>
+          <dt>Container port</dt>
+          <dd>80</dd>
+        </div>
+        <div>
+          <dt>Host port</dt>
+          <dd>8080</dd>
+        </div>
+        <div>
+          <dt>Volume path</dt>
+          <dd>/data</dd>
+        </div>
+      </dl>
+    </main>
+  </body>
+</html>

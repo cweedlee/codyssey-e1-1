@@ -1,52 +1,158 @@
 # 미션 소개
 
 1. Terminal, Docker, Git을 포함하는 개발 스테이션을 만든다.
-2. 웹 서버를 만들고 컨테이너화하여 조작한다.
-3. bind mount를 통하여 docker 내부에서 조작한 데이터가 반영되는 것, 그리고 데이터가 유지되는 것(데이터 영속성)을 검증한다.
-4. 이에 사용된 기술과 원리를 이해한다.
 
-# 실행 환경 
+1. 웹 서버를 만들고 컨테이너화하여 조작한다.
 
+1. bind mount를 통하여 docker 내부에서 조작한 데이터가 반영되는 것, 그리고 데이터가 유지되는 것(데이터 영속성)을 검증한다.
 
+1. 이에 사용된 기술과 원리를 이해한다.
 
+# 실행 환경
 
+- OS: macOS + Docker Desktop
+
+- Docker: `Docker version 29.4.1, build 055a478`
+
+- Docker Compose: `Docker Compose version v5.1.3`
+
+- Docker daemon: `docker info`로 Server 정보 확인 완료
+
+# 프로젝트 구성
+
+- `Dockerfile`: `nginx:1.27-alpine` 기반 커스텀 웹 서버 이미지
+
+- `compose.yaml`: NGINX 웹 서버, WordPress, MariaDB 실행 설정
+
+- `public/index.html`: 컨테이너에서 제공할 정적 HTML
+
+- `public/styles.css`: 정적 페이지 스타일
+
+- `.env.example`: 로컬 환경 변수 예시
+
+# 실행
+
+## docker-compose 기반 실행
+
+```bash
+cp .env.example .env
+docker compose up --build -d
+curl http://localhost:8080
+curl -I http://localhost:8081
+docker compose ps
+docker compose logs web
+docker compose logs wordpress
+docker compose logs mariadb
+docker compose down
+```
+
+- NGINX 접속: `http://localhost:8080`
+
+- WordPress 접속: `http://localhost:8081`
+
+- MariaDB는 외부 포트를 열지 않고 Compose 내부 네트워크에서 `mariadb:3306`으로만 접근한다.
+
+## docker 명령어를 통한 실행
+
+```bash
+docker build -t codyssey-e1-1-web .
+# -t : tag, 식별자
+docker run --name codyssey-e1-1-web-manual -p 8080:80 -v "$(pwd)/public:/usr/share/nginx/html" -d codyssey-e1-1-web
+curl http://localhost:8080
+docker logs codyssey-e1-1-web-manual
+docker stop codyssey-e1-1-web-manual
+docker rm codyssey-e1-1-web-manual
+```
+![실행이미지](Screenshot 2026-07-31 at 2.27.30 PM)
+
+# 검증
+
+## bind mount 검증
+
+> 컨테이너 외부 폴더가 컨테이너에 연결되어 있는지 확인한다.
+
+```bash
+docker compose up --build -d
+docker compose exec web sh -c 'echo "bind mount updated from container" > /usr/share/nginx/html/bind-proof.txt'
+cat public/bind-proof.txt
+curl http://localhost:8080/bind-proof.txt
+```
+
+## Docker 볼륨 영속성 검증
+
+> 볼륨 영속성이란? 컨테이너가 삭제되거나 종료되어도 데이터가 사라지지 않고 안전하게 유지되는 기능. 아래에서는 외부 볼륨을 마운트해 쓰는 것으로 해결하고 있다.
+
+사용하는 외부 볼륨: `web-data`, `wordpress-data`, `mariadb-data`
+
+예시:
+
+```bash
+docker compose up --build -d
+# detach: 현재 터미널창과 분리
+# build: 이미지를 새로 빌드해야 할 경우
+docker compose exec web sh -c 'echo "volume data survives container removal" > /data/volume-proof.txt'
+docker compose down
+docker compose up -d
+docker compose exec web cat /data/volume-proof.txt
+docker compose down
+```
+
+![볼륨-영속성-검증-이미지](./image/Screenshot 2026-07-31 at 1.59.38 PM.png)
+
+# 환경 변수 활용
+
+> 호스트 포트는 `WEB_PORT` 변수를 활용하여 바꿀 수 있다.
+
+```bash
+WEB_PORT=8090 docker compose up --build -d
+curl http://localhost:8090
+docker compose down
+```
 
 # 수행 항목 체크리스트
--[ ] 터미널/권한/Docker/Dockerfile/포트/볼륨/Git/GitHub 
 
-
-
-
-
-
+- [ ] 터미널
+- [ ] 권한
+- [ ] Docker
+- [ ] Dockerfile
+- [ ] 포트
+- [ ] 볼륨
+- [ ] Git
+- [ ] GitHub
 
 # 수행 결과
 
 ## 터미널 조작 로그 기록
+
 다음 작업을 터미널로 수행하고, 명령어 + 출력 결과를 기술 문서에 기록한다.
 현재 위치 확인, 목록 확인(숨김 파일 포함), 이동, 생성, 복사, 이동/이름변경, 삭제
 파일 내용 확인, 빈 파일 생성
 
 ## 권한 실습 및 증거 기록
+
 권한을 확인/변경하는 명령을 수행하고, 변경 전/후 비교를 기술 문서에 남긴다.
 최소 요구: 파일 1개, 디렉토리 1개에 대해 권한 변경 실험을 수행한다.
 
 ## Docker 설치 및 기본 점검
+
 Docker 버전 확인 결과를 기록한다. (docker --version)
 Docker 데몬 동작 여부 확인 결과를 기록한다. (docker info 또는 동등 점검)
 
 ## Docker 기본 운영 명령 수행
+
 이미지: 다운로드/목록 확인 (예: docker images)
 컨테이너: 실행/중지/목록 확인 (예: docker ps, docker ps -a)
 운영: 로그 확인 (예: docker logs), 리소스 확인 (예: docker stats)
 수행 명령과 출력 결과를 기술 문서에 남긴다.
 
 ## 컨테이너 실행 실습
+
 hello-world 실행 성공을 기록한다.
 ubuntu 컨테이너를 실행하고 내부 진입 후 간단 명령(예: ls, echo) 수행 결과를 기록한다.
 컨테이너 종료/유지(attach/exec 등)의 차이를 스스로 관찰하고 간단히 정리한다.
 
 ## 기존 Dockerfile 기반 커스텀 이미지 제작
+
 아래 방식 중 하나를 선택하여 기존 Dockerfile/이미지 기반의 커스텀 이미지를 만든다.
 (A) 웹 서버 베이스 이미지 활용(예: NGINX/Apache 등) + 정적 콘텐츠/설정만 교체
 (B) Linux 베이스 이미지(예: ubuntu/alpine 등) + 기본 기능(패키지/사용자/환경변수/헬스체크 등) 추가
@@ -58,23 +164,39 @@ ubuntu 컨테이너를 실행하고 내부 진입 후 간단 명령(예: ls, ech
 빌드/실행 명령 + 핵심 결과(출력/스크린샷)
 
 ## 포트 매핑 및 접속 증거
+
 브라우저 접속 화면(또는 curl 응답)을 기술 문서에 첨부한다.
 Docker 볼륨 영속성 검증
 Docker 볼륨을 생성하고 컨테이너에 연결한다.
 컨테이너 삭제 전/후로 데이터를 확인하여 데이터가 유지됨을 증명한다.
 
 ## Git 설정 및 GitHub 연동
-* Git 사용자 정보/기본 브랜치 설정을 완료하고 git config --list 결과를 기록한다.
-* GitHub 로그인 및 저장소 연동을 완료하고, 연동 증거(스크린샷 등)를 기술 문서에 첨부한다.
+
+- Git 사용자 정보/기본 브랜치 설정을 완료하고 git config --list 결과를 기록한다.
+
+- GitHub 로그인 및 저장소 연동을 완료하고, 연동 증거(스크린샷 등)를 기술 문서에 첨부한다.
+
 보안 및 개인정보 보호
-* 기술 문서/로그/스크린샷에 토큰, 비밀번호, 개인키, 인증 코드 등이 포함되지 않도록 마스킹한다.
-* 의심되는 민감정보가 노출된 경우, 즉시 히스토리/문서에서 제거하고 재발급 절차를 수행한다 (가능한 범위에서).
 
+- 기술 문서/로그/스크린샷에 토큰, 비밀번호, 개인키, 인증 코드 등이 포함되지 않도록 마스킹한다.
 
+- 의심되는 민감정보가 노출된 경우, 즉시 히스토리/문서에서 제거하고 재발급 절차를 수행한다 (가능한 범위에서).
 
 # 검증 방법
 
+1. `docker compose up --build -d`로 컨테이너를 실행한다.
 
+1. `curl http://localhost:8080` 또는 브라우저 접속으로 웹 서버 응답을 확인한다.
+
+1. `curl -I http://localhost:8081`로 WordPress 응답을 확인한다.
+
+1. `docker compose exec mariadb mariadb -uwordpress -p'****' wordpress -e 'SHOW TABLES;'`로 WordPress와 MariaDB 연결을 확인한다.
+
+1. `docker compose exec web sh -c 'echo test > /usr/share/nginx/html/bind-proof.txt'` 실행 후 `public/bind-proof.txt`가 생겼는지 확인한다.
+
+1. `docker compose exec web sh -c 'echo test > /data/volume-proof.txt'` 실행 후 `docker compose down && docker compose up -d`를 거쳐 파일 내용이 유지되는지 확인한다.
+
+상세 증거와 실행 로그는 [proof/README.md](./proof/README.md)에 정리한다.
 
 # BONUS
 

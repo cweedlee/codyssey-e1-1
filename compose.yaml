@@ -1,0 +1,50 @@
+services:
+  web:
+    build:
+      context: .
+    image: codyssey-e1-1-web:latest
+    container_name: codyssey-e1-1-web
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    environment:
+      APP_MODE: "${APP_MODE:-compose}"
+    volumes:
+      - ./public:/usr/share/nginx/html
+      - web-data:/data
+
+  wordpress:
+    image: wordpress:6.6-apache
+    container_name: codyssey-e1-1-wordpress
+    ports:
+      - "${WORDPRESS_PORT:-8081}:80"
+    environment:
+      WORDPRESS_DB_HOST: mariadb:3306
+      WORDPRESS_DB_NAME: "${MARIADB_DATABASE:-wordpress}"
+      WORDPRESS_DB_USER: "${MARIADB_USER:-wordpress}"
+      WORDPRESS_DB_PASSWORD: "${MARIADB_PASSWORD:?Set MARIADB_PASSWORD in .env}"
+    volumes:
+      - wordpress-data:/var/www/html
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  mariadb:
+    image: mariadb:11.4
+    container_name: codyssey-e1-1-mariadb
+    environment:
+      MARIADB_ROOT_PASSWORD: "${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD in .env}"
+      MARIADB_DATABASE: "${MARIADB_DATABASE:-wordpress}"
+      MARIADB_USER: "${MARIADB_USER:-wordpress}"
+      MARIADB_PASSWORD: "${MARIADB_PASSWORD:?Set MARIADB_PASSWORD in .env}"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh --connect --innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  web-data:
+  wordpress-data:
+  mariadb-data:
